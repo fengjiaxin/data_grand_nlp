@@ -20,7 +20,7 @@ class FastText(BasicModule):
         super(FastText,self).__init__()
         self.vocab_size = hp.vocab_size
         self.embedding_dim = hp.embedding_dim
-        self.hidden_size = hp.hidden_size
+        self.hidden_size = hp.linear_hidden_size
         self.label_size = hp.label_size
 
         self.embedding = nn.Embedding(self.vocab_size,self.embedding_dim)

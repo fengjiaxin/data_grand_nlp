@@ -13,8 +13,9 @@ class Hprams:
     # 每次跑模型可以调整的参数
     # 1. 调整采用的训练数据规模，词向量以及哪个模型的参数以及随机参数
     parser.add_argument('--data_scale', default='mini', help='scale of data ("mini" /"all")', choices=['mini', 'all'])
-    parser.add_argument('--model_name', default='TextCNN', type=str,
-                        help='model name ,same as models/__init__.py name')
+    parser.add_argument('--model_name', default='FastText', type=str,
+                        help='model name ,same as models/__init__.py name',choices=['FastText','TextCNN','TextGRU','GRU_Attention','RCNN'])
+
     parser.add_argument('--model_id', default='0', help='model id')
     parser.add_argument('--max_seq_len', default=50, type=int, help='sentence length')
     parser.add_argument('--label_size', default=19, type=int, help='class num')
@@ -33,13 +34,22 @@ class Hprams:
     parser.add_argument('--lr_decay',default=0.8,type=float,help='当一个epoch的损失开始上升时，lr=lr*decay')
     parser.add_argument('--decay_every',default=10000,type=int,help='每多少个batch,查看val acc ，并修改学习率')
     parser.add_argument('--weight_decay',default=0,type=float,help='权重衰减')
-    parser.add_argument('--max_epoches',default=5,type=int,help='train epoches')
-    parser.add_argument('--hidden_size',default=100,type=int,help='hidden size number')
-    parser.add_argument('--batch_size', default=8, type=int, help='batch size number')
-    parser.add_argument('--print_every', default=10, type=int, help='batch size number')
+    parser.add_argument('--max_epoches',default=10,type=int,help='train epoches')
+    parser.add_argument('--linear_hidden_size',default=100,type=int,help='hidden size number')
+    parser.add_argument('--batch_size', default=16, type=int, help='batch size number')
+    parser.add_argument('--print_every', default=20, type=int, help='batch size number')
 
     # 3.具体的模型参数
+    # TextCNN
     parser.add_argument('--kernel_num', default=2, type=int, help='TextCNN kernel channel number')
+    # TextGRU
+    parser.add_argument('--layer_hidden_size', default=50, type=int, help='GRU layer hidden size')
+    parser.add_argument('--gru_layers', default=2, type=int, help='gru layer number')
+    parser.add_argument('--gru_dropout', default=0.5, type=float, help='gru layer dropout')
+    parser.add_argument('--k_max', default=2, type=int, help='k max pooling')
+    # RCNN
+    parser.add_argument('--rcnn_kernel_size', default=5, type=int, help='rcnn kernel window size')
+    parser.add_argument('--rcnn_kernel_channels', default=50, type=int, help='rcnn kernel out channels')
 
     # -------------------------------------------------------------------------------------------
     # 下面的参数不需要手动调节，之后会在程序中更新

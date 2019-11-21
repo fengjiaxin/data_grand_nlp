@@ -36,10 +36,10 @@ class TextCNN(BasicModule):
         self.convs = nn.ModuleList(convs)
 
         self.fc = nn.Sequential(
-            nn.Linear(len(kernel_sizes) * hp.kernel_num,hp.hidden_size),
-            nn.BatchNorm1d(hp.hidden_size),
+            nn.Linear(len(kernel_sizes) * hp.kernel_num,hp.linear_hidden_size),
+            nn.BatchNorm1d(hp.linear_hidden_size),
             nn.ReLU(inplace=True),
-            nn.Linear(hp.hidden_size,hp.label_size)
+            nn.Linear(hp.linear_hidden_size,hp.label_size)
         )
 
     def forward(self,inputs):

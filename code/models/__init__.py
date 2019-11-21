@@ -7,3 +7,6 @@
 
 from .FastText import FastText
 from .TextCNN import TextCNN
+from .TextGRU import TextGRU
+from .GRU_Attention import GRU_Attention
+from .RCNN import RCNN

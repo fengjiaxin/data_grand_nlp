@@ -57,21 +57,24 @@ def data_loader(data_file,batch_size,word2index,max_seq_len,column_name,label,mo
         corpus = train_df[column_name]
         labels = train_df[label]
         train_dataset = MyDataset(corpus,labels,word2index,max_seq_len)
-        train_loader = data.DataLoader(train_dataset,batch_size=batch_size,shuffle=True,num_workers=2)
+        #train_loader = data.DataLoader(train_dataset,batch_size=batch_size,shuffle=True,num_workers=1)
+        train_loader = data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         return train_loader
     if mode == 'val':
         val_df = pd.read_csv(data_file, usecols=[column_name, label])
         corpus = val_df[column_name]
         labels = val_df[label]
         val_dataset = MyDataset(corpus, labels, word2index, max_seq_len)
-        val_loader = data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False,num_workers=2)
+        #val_loader = data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False,num_workers=1)
+        val_loader = data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
         return val_loader
     if mode == 'test':
         test_df = pd.read_csv(data_file, usecols=[column_name])
         corpus = test_df[column_name]
         labels = None
         test_dataset = MyDataset(corpus, labels, word2index, max_seq_len)
-        test_loader = data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False,num_workers=2)
+        #test_loader = data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=1)
+        test_loader = data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
         return test_loader
 
 

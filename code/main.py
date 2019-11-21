@@ -175,10 +175,15 @@ def train():
     model = getattr(models,hp.model_name)(hp,vectors)
     logging.info(model)
 
-    # 更新模型保存位置文件夹 save_dir/model_name
-    model_path_dir = os.path.join(hp.base_dir,hp.data_scale, hp.save_models,hp.model_name)
+    # 更新模型保存位置文件夹 save_dir/model_name/model_id/
+
+    model_path_name_dir = os.path.join(hp.base_dir,hp.data_scale, hp.save_models,hp.model_name)
+    if not os.path.exists(model_path_name_dir):
+        os.mkdir(model_path_name_dir)
+    model_path_dir = os.path.join(model_path_name_dir,hp.model_name+'_'+str(hp.model_id))
     if not os.path.exists(model_path_dir):
         os.mkdir(model_path_dir)
+
     save_path = os.path.join(model_path_dir,'{}_{}.pth'.format(hp.model_name,hp.model_id))
 
     # save path  模型之后的存储位置之后在更新
