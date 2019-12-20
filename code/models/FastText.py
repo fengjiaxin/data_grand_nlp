@@ -17,15 +17,11 @@ class FastText(BasicModule):
         :param hp_dict:
         :param vectors: 默认是numpy array
         '''
-        super(FastText,self).__init__()
+        super(FastText,self).__init__(hp.vocab_size,hp.embedding_dim,vectors)
         self.vocab_size = hp.vocab_size
         self.embedding_dim = hp.embedding_dim
         self.hidden_size = hp.linear_hidden_size
         self.label_size = hp.label_size
-
-        self.embedding = nn.Embedding(self.vocab_size,self.embedding_dim)
-        if vectors is not None:
-            self.embedding.weight.data.copy_(torch.from_numpy(vectors))
 
         self.pre = nn.Sequential(
             nn.Linear(self.embedding_dim,self.embedding_dim * 2),

@@ -12,19 +12,17 @@ class Hprams:
 
     # 每次跑模型可以调整的参数
     # 1. 调整采用的训练数据规模，词向量以及哪个模型的参数以及随机参数
-    parser.add_argument('--data_scale', default='mini', help='scale of data ("mini" /"all")', choices=['mini', 'all'])
     parser.add_argument('--model_name', default='FastText', type=str,
                         help='model name ,same as models/__init__.py name',choices=['FastText','TextCNN','TextGRU','GRU_Attention','RCNN'])
 
     parser.add_argument('--model_id', default='0', help='model id')
-    parser.add_argument('--max_seq_len', default=50, type=int, help='sentence length')
+    parser.add_argument('--max_text_len', default=50, type=int, help='max sentence length')
     parser.add_argument('--label_size', default=19, type=int, help='class num')
     parser.add_argument('--embedding_dim', default=50, type=int, help='len of word vector')
-    parser.add_argument('--word2vec_type', default='skip2gram', help='word2vec type ("skip2gram")/"glove"',choices=['skip2gram','glove'])
-    parser.add_argument('--text_type', default='article', help='use word2vec type ("article"/"word")',choices=['article','word'])
-    parser.add_argument('--column_name', default='', help='dataframe column,get later by text_type')
-    parser.add_argument('--label', default='class', help='dataframe label column')
+    parser.add_argument('--text_type', default='word', help='use word2vec type ("article"/"word")',choices=['article','word'])
     parser.add_argument('--seed',default=77,type=int,help='random seed number')
+    parser.add_argument('--device', default=0, type=int, help='gpu device id')
+    parser.add_argument('--aug', default=False, type=bool, help='是否进行数据增强')
 
 
     # 2. 关于模型的超参数
@@ -36,8 +34,8 @@ class Hprams:
     parser.add_argument('--weight_decay',default=0,type=float,help='权重衰减')
     parser.add_argument('--max_epoches',default=10,type=int,help='train epoches')
     parser.add_argument('--linear_hidden_size',default=100,type=int,help='hidden size number')
-    parser.add_argument('--batch_size', default=16, type=int, help='batch size number')
-    parser.add_argument('--print_every', default=20, type=int, help='batch size number')
+    parser.add_argument('--batch_size', default=512, type=int, help='batch size number')
+    parser.add_argument('--print_every', default=2, type=int, help='print every 不能为1')
 
     # 3.具体的模型参数
     # TextCNN
@@ -54,20 +52,9 @@ class Hprams:
     # -------------------------------------------------------------------------------------------
     # 下面的参数不需要手动调节，之后会在程序中更新
     # 1. 文件夹名称信息
-    parser.add_argument('--base_dir', default='../data/', help='save data top dir')
-    parser.add_argument('--origin_data',default='origin_data',help='save train file dir name')
-    parser.add_argument('--result',default='result',help='save result data dir name')
-    parser.add_argument('--save_models',default='save_models',help='save model top dir name')
-    parser.add_argument('--word2vec_data',default='word2vec_data',help='save word2vec data dir name')
-
+    parser.add_argument('--data_dir', default='../data/mini/', help='save data top dir')
 
     # 2. 参数信息
     parser.add_argument('--best_score',default=0,type=float,help='model best fp1 score')
     parser.add_argument('--vocab_size', default=100, type=int, help='update by later')
     parser.add_argument('--cuda',default=False,help='是否可以使用nvida gpu训练,upadte later')
-
-    # 3. 文件的详细位置信息
-    parser.add_argument('--train_path',default='',help='update by data_scale')
-    parser.add_argument('--val_path', default='', help='update by data_scale')
-    parser.add_argument('--test_path', default='', help='update by data_scale')
-    parser.add_argument('--word2vec_path', default='', help='update by data_scale,word2vec_type,embedding_dim')

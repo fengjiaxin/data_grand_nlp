@@ -12,16 +12,12 @@ import torch.nn.functional as F
 
 class GRU_Attention(BasicModule):
     def __init__(self,hp,vectors):
-        super(GRU_Attention,self).__init__()
+        super(GRU_Attention,self).__init__(hp.vocab_size,hp.embedding_dim,vectors)
         self.layer_hidden_dim = hp.layer_hidden_size
         self.gru_layers = hp.gru_layers
         self.vocab_size = hp.vocab_size
         self.embedding_dim = hp.embedding_dim
         self.label_size = hp.label_size
-
-        self.embedding = nn.Embedding(self.vocab_size,self.embedding_dim)
-        if vectors is not None:
-            self.embedding.weight.data.copy_(torch.from_numpy(vectors))
 
         self.bigru = nn.GRU(
             hp.embedding_dim,
@@ -34,26 +30,32 @@ class GRU_Attention(BasicModule):
         self.u_linear = nn.Linear(self.layer_hidden_dim,self.layer_hidden_dim)
 
         # 将u得分映射到一维向量 linear
-        self.e_linear = nn.Linear(self.layer_hidden_dim,1)
+        self.weight_W = nn.Parameter(torch.Tensor(self.layer_hidden_dim,self.layer_hidden_dim))
+        # 映射到atten_score
+        self.weight_proj = nn.Parameter(torch.Tensor(self.layer_hidden_dim,1))
 
         # 最后的全连接层
         self.fc = nn.Linear(self.layer_hidden_dim,self.label_size)
 
+        nn.init.uniform_(self.weight_W, -0.1, 0.1)
+        nn.init.uniform_(self.weight_proj, -0.1, 0.1)
+
     def forward(self,text):
         '''
-        注意，需要注意mask 和 padding
+        注意，如果是transformer模型需要注意mask 和 padding
+        但是这里采用的是rnn模型，在信息传递的过程中，pad也是向量
         :param text: [batch_size,seq_len]
         :return:
         '''
 
-        attend_mask = text.clone()
-        attend_mask[attend_mask!=0]=1
-        attend_mask[attend_mask==0]=0
-        # 经过上述操作，[batch_size,seq_len],其中是pad的单词元素为0，不是padding的单词元素为1
+        #attend_mask = text.clone()
+        #attend_mask[attend_mask!=1]=1
+        #attend_mask[attend_mask==1]=0
+        # 经过上述操作，[batch_size,seq_len],其中是pad的单词元素为1，不是padding的单词元素为1
 
-        softmax_mask = text.clone()
-        softmax_mask[softmax_mask!=0] = 0
-        softmax_mask[softmax_mask==0] = -9e8 # make the softmax very small
+        #softmax_mask = text.clone()
+        #softmax_mask[softmax_mask!=0] = 0.
+        #softmax_mask[softmax_mask==0] = -9e8 # make the softmax very small
 
 
 
@@ -61,18 +63,18 @@ class GRU_Attention(BasicModule):
         embeds = self.embedding(text) # [batch_size,seq_len,embedding_dim]
         gru_out,_ = self.bigru(embeds) # [batch_size,seq_len,layer_hidden_size]
 
-        u = torch.tanh(self.u_linear(gru_out)) # [batch_size,seq_len,layer_hidden_size]
-        a = self.e_linear(u).squeeze() # [batch_size,seq_len]
-        a = a + softmax_mask # [batch_size,seq_len],如果是pad的话，a的值非常小
-        att_score = F.softmax(a,dim=1).unsqueeze(1) # [batch_size,seq_len,1]
+        u = torch.tanh(torch.matmul(gru_out,self.weight_W)) # [batch_size,seq_len,layer_hidden_size]
+        # [batch_size,seq_len,1]
+        att = torch.matmul(u,self.weight_proj)
 
+        att_score = F.softmax(att,dim=1) # [batch_size,seq_len,1]
+
+        # [batch_size,seq_len,layer_hidden_dim]
+        score_embeds = gru_out * att_score
         # 将embeds中pad的隐藏向量设置为0
-        embeds = embeds * attend_mask.unsqueeze(1) # [batch_size,seq_len,layer_hidden_dim]
-        score_embeds = embeds * att_score # [batch_size,seq_len,layer_hidden_dim]
         context_vec = torch.sum(score_embeds,dim=1) # [batch_size,layer_hidden_dim]
 
         y = self.fc(context_vec)
-
         return y
 
 

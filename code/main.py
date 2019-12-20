@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2019-11-14 08:28
 # @Author  : 冯佳欣
-# @File    : main.py
+# @File    : main_pre.py
 # @Desc    : 训练模型的文件
 
 import torch
@@ -17,7 +17,7 @@ from sklearn import metrics
 import logging
 logging.basicConfig(level=logging.INFO,format = '%(message)s')
 from hparams import Hprams
-from data_loader import get_data_loader
+from data import load_data
 import numpy as np
 use_gpu = torch.cuda.is_available()
 
@@ -42,7 +42,8 @@ def val(model,data_iter,hp):
     predict = np.zeros((0,),dtype=np.int32)
 
     with torch.no_grad():
-        for (text,label) in data_iter:
+        for batch in data_iter:
+            text,label = batch.text,batch.label
             if hp.cuda:
                 text = text.cuda()
                 label = label.cuda()
@@ -70,13 +71,14 @@ def test(model,test_iter,hp):
     result = np.zeros((0,),dtype=np.int32)
     probs_list = []
     with torch.no_grad():
-        for text in test_iter:
+        for batch in test_iter:
+            text = batch.text
             if hp.cuda:
                 text = text.cuda()
             outputs = model(text)
             probs = F.softmax(outputs,dim=1)
+
             if hp.cuda:
-                outputs - outputs.cpu()
                 probs = probs.cpu()
 
             probs_list.append(probs.numpy())
@@ -85,8 +87,8 @@ def test(model,test_iter,hp):
 
     # 生成概率文件
     prob_cat = np.concatenate(probs_list,axis=0)
-
-    test_df = pd.read_csv(hp.test_path,usecols=['id'])
+    test_path = os.path.join(hp.data_dir,'result','test_set.csv')
+    test_df = pd.read_csv(test_path,usecols=['id'])
     test_id = test_df['id'].values
     test_pred = pd.DataFrame({'id':test_id,'class':result})
     test_pred['class'] = (test_pred['class'] + 1).astype(int)
@@ -134,39 +136,13 @@ def train():
 
     # 是否可以使用GPU
     if not use_gpu:
-        hp.cuda = False
+        setattr(hp, "cuda", False)
+        setattr(hp, "device", -1)
         torch.manual_seed(hp.seed)
 
-    # 更新采用word2vec的相关信息
-    if hp.text_type == 'article':
-        setattr(hp,"column_name",'article')
-    elif hp.text_type == 'word':
-        setattr(hp, "column_name", 'word_seg')
-    word2vec_name = hp.word2vec_type + '_' + hp.text_type + '_' + str(hp.embedding_dim) + '.txt'
-
-    if hp.data_scale == 'mini':
-        train_path = os.path.join(hp.base_dir,hp.data_scale,hp.origin_data,'mini_train_set.csv')
-        val_path = os.path.join(hp.base_dir, hp.data_scale, hp.origin_data, 'mini_val_set.csv')
-        test_path = os.path.join(hp.base_dir, hp.data_scale, hp.origin_data, 'mini_test_set.csv')
-        setattr(hp, "train_path", train_path)
-        setattr(hp, "val_path", val_path)
-        setattr(hp, "test_path", test_path)
-        word2vec_path = os.path.join(hp.base_dir,hp.data_scale,hp.word2vec_data,word2vec_name)
-        setattr(hp, "word2vec_path", word2vec_path)
-    elif hp.data_scale == 'all':
-        train_path = os.path.join(hp.base_dir, hp.data_scale, hp.origin_data, 'train_set.csv')
-        val_path = os.path.join(hp.base_dir, hp.data_scale, hp.origin_data, 'val_set.csv')
-        test_path = os.path.join(hp.base_dir, hp.data_scale, hp.origin_data, 'test_set.csv')
-        setattr(hp, "train_path", train_path)
-        setattr(hp, "val_path", val_path)
-        setattr(hp, "test_path", test_path)
-        word2vec_path = os.path.join(hp.base_dir, hp.data_scale, hp.word2vec_data, word2vec_name)
-        setattr(hp, "word2vec_path", word2vec_path)
-
-
-
-    train_iter,val_iter,test_iter,word2index,vectors = get_data_loader(hp)
-    setattr(hp,"vocab_size",len(word2index))
+    train_iter,val_iter,test_iter,vocab_size,vectors = load_data(hp)
+    setattr(hp,"vocab_size",vocab_size)
+    logging.info('vectors shape {}'.format(vectors.shape))
 
     global best_score
     best_score = 0.0
@@ -175,12 +151,16 @@ def train():
     model = getattr(models,hp.model_name)(hp,vectors)
     logging.info(model)
 
-    # 更新模型保存位置文件夹 save_dir/model_name/model_id/
+    # 更新模型保存位置文件夹 data_dir/save_models/model_name/model_id/
+    model_dir = os.path.join(hp.data_dir,'save_models')
+    if not os.path.exists(model_dir):
+        os.mkdir(model_dir)
 
-    model_path_name_dir = os.path.join(hp.base_dir,hp.data_scale, hp.save_models,hp.model_name)
-    if not os.path.exists(model_path_name_dir):
-        os.mkdir(model_path_name_dir)
-    model_path_dir = os.path.join(model_path_name_dir,hp.model_name+'_'+str(hp.model_id))
+    model_name_dir = os.path.join(model_dir,hp.model_name)
+    if not os.path.exists(model_name_dir):
+        os.mkdir(model_name_dir)
+
+    model_path_dir = os.path.join(model_name_dir,hp.model_name+'_'+str(hp.model_id))
     if not os.path.exists(model_path_dir):
         os.mkdir(model_path_dir)
 
@@ -205,12 +185,13 @@ def train():
 
         model.train()
 
-        for idx,(text,label) in enumerate(train_iter):
+        for idx,batch in enumerate(train_iter):
             # 训练模型参数
             # 使用batchNorm 层，batch_size 不能为1
-            if len(label) == 1:continue
-            batch_len = len(label)
+            batch_len = len(batch)
+            if batch_len == 1: continue
 
+            text,label = batch.text,batch.label
             if hp.cuda:
                 text = text.cuda()
                 label = label.cuda()
@@ -272,8 +253,11 @@ def train():
     # 保存hparams
     hp_path = os.path.join(model_path_dir,'{}_{}_hparams.txt'.format(hp.model_name,hp.model_id))
     save_hparams(hp_path,hp)
+
     # 在测试集上运行模型并生成概率结果和提交结果
-    result_path_dir = os.path.join(hp.base_dir,hp.data_scale, hp.result)
+
+    # result 存储在data_dir/result
+    result_path_dir = os.path.join(hp.data_dir,'result')
     if not os.path.exists(result_path_dir):
         os.mkdir(result_path_dir)
 

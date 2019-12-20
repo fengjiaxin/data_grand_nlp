@@ -12,7 +12,8 @@ from torch import nn
 
 class TextGRU(BasicModule):
     def __init__(self,hp,vectors):
-        super(TextGRU, self).__init__()
+        super(TextGRU, self).__init__(hp.vocab_size,hp.embedding_dim,vectors)
+
         self.vocab_size = hp.vocab_size
         self.embedding_dim = hp.embedding_dim
         self.linear_hidden_size = hp.linear_hidden_size
@@ -22,10 +23,6 @@ class TextGRU(BasicModule):
         self.gru_dropout = hp.gru_dropout
         self.k_max = hp.k_max
 
-
-        self.embedding = nn.Embedding(self.vocab_size,self.embedding_dim)
-        if vectors is not None:
-            self.embedding.weight.data.copy_(torch.from_numpy(vectors))
         # input of shape (batch,seq_len,input_size)
         self.bigru = nn.GRU(
             input_size = self.embedding_dim,

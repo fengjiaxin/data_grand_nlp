@@ -13,11 +13,7 @@ kernel_sizes = [1,2,3,4,5]
 
 class TextCNN(BasicModule):
     def __init__(self,hp,vectors=None):
-        super(TextCNN,self).__init__()
-
-        self.embedding = nn.Embedding(hp.vocab_size,hp.embedding_dim)
-        if vectors is not None:
-            self.embedding.weight.data.copy_(torch.from_numpy(vectors))
+        super(TextCNN,self).__init__(hp.vocab_size,hp.embedding_dim,vectors)
 
         convs = [
             nn.Sequential(
@@ -28,7 +24,7 @@ class TextCNN(BasicModule):
                 nn.ReLU(inplace=True),
 
                 # 到这里 [batch_size,kernel_num,(seq_len - kernel_size + 1)]
-                nn.MaxPool1d(kernel_size=(hp.max_seq_len - kernel_size + 1))
+                nn.MaxPool1d(kernel_size=(hp.max_text_len - kernel_size + 1))
                 # [batch_size,kernel_num,1]
             )
             for kernel_size in kernel_sizes

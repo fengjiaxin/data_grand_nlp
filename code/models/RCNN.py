@@ -22,12 +22,8 @@ def kmax_pooling(x,k):
 
 class RCNN(BasicModule):
     def __init__(self,hp,vectors):
-        super(RCNN,self).__init__()
+        super(RCNN,self).__init__(hp.vocab_size,hp.embedding_dim,vectors)
         self.k_max = hp.k_max
-
-        self.embedding = nn.Embedding(hp.vocab_size,hp.embedding_dim)
-        if vectors is not None:
-            self.embedding.weight.data.copy_(torch.from_numpy(vectors))
 
         self.bigru = nn.GRU(
             input_size = hp.embedding_dim,

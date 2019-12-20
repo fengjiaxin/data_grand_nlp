@@ -6,12 +6,15 @@
 # @Desc    : 所有模型的基本文件
 
 import torch
+from torch import nn
 
 class BasicModule(torch.nn.Module):
-    def __init__(self):
+    def __init__(self,vocab_size,embedding_dim,vectors=None):
         super(BasicModule,self).__init__()
         self.model_name = str(type(self))
-
+        self.embedding = nn.Embedding(vocab_size,embedding_dim)
+        if vectors is not None:
+            self.embedding.weight.data.copy_(vectors)
 
     def get_optimizer(self,lr1,lr2=0,weight_decay=0):
         '''
